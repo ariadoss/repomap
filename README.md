@@ -1,8 +1,9 @@
-# /repomap — Codebase Map Generator for AI Coding Tools
+# repomap + dbmap — Code & Database Maps for AI Coding Tools
 
-Generate a structural map of your codebase using [tree-sitter](https://tree-sitter.github.io/tree-sitter/). No LLM API calls, no tokens burned — pure local parsing, instant results.
+Two tools that give AI coding agents complete project awareness:
 
-The map is saved as `REPOMAP.md`, giving Claude Code, OpenCode, Aider, and other AI tools a high-level overview of your codebase's files, classes, functions, and interfaces.
+- **repomap** — Generates a structural map of your codebase using [tree-sitter](https://tree-sitter.github.io/tree-sitter/). No LLM API calls, no tokens burned — pure local parsing, instant results. Saved as `REPOMAP.md`.
+- **dbmap** — Generates a database schema map using [tbls](https://github.com/k1LoW/tbls). Auto-detects database connections from your project config files with a confirmation step before connecting. Saved as `DBMAP.md`.
 
 ## How it works
 
@@ -58,10 +59,12 @@ mkdir -p ~/.claude/commands
 cp repomap.md ~/.claude/commands/repomap.md
 cp repomap-auto-on.md ~/.claude/commands/repomap-auto-on.md
 cp repomap-auto-off.md ~/.claude/commands/repomap-auto-off.md
+cp dbmap.md ~/.claude/commands/dbmap.md
 
 # Per-project
 mkdir -p .claude/commands
 cp repomap.md .claude/commands/repomap.md
+cp dbmap.md .claude/commands/dbmap.md
 ```
 
 ## Usage
@@ -190,6 +193,86 @@ The hook only fires when both `.repomap-auto` and `REPOMAP.md` exist in the proj
 | Dockerfile | `Dockerfile` |
 | Makefile | `Makefile` |
 
+---
+
+## /dbmap — Database Schema Map
+
+Generate a database schema map by auto-detecting your project's database connection and running [tbls](https://github.com/k1LoW/tbls).
+
+### How it works
+
+1. Scans your project for database connection configs
+2. Shows what it found (with masked passwords) and asks you to confirm
+3. Connects to the database and generates schema documentation
+4. Writes `DBMAP.md` with table listings, columns, types, constraints, and relationships
+
+### Prerequisites
+
+- [tbls](https://github.com/k1LoW/tbls) (auto-installed via Homebrew or `go install` on first run)
+- A running database to connect to
+
+### Command line
+
+```bash
+# Auto-detect and list database connections
+python3 -m dbmap /path/to/project --list
+
+# Auto-detect, confirm, and generate
+python3 -m dbmap /path/to/project -o DBMAP.md
+
+# Skip detection — provide DSN directly
+python3 -m dbmap --dsn 'mysql://user:pass@localhost:3306/mydb' -o DBMAP.md
+
+# Non-interactive (use first detected config)
+python3 -m dbmap /path/to/project --confirm -o DBMAP.md
+```
+
+### CLI reference
+
+| Flag | Description |
+|------|-------------|
+| `repo` | Path to the project (default: current directory) |
+| `-o`, `--output` | Output file path (default: DBMAP.md) |
+| `--dsn DSN` | Database connection string (skip auto-detection) |
+| `--confirm` | Skip interactive confirmation, use first detected config |
+| `--list` | List detected database connections and exit |
+
+### Claude Code
+
+```
+/dbmap
+```
+
+The slash command scans your project, shows detected connections, and asks which to use before connecting.
+
+### Supported config formats
+
+Auto-detection scans for database connections in:
+
+| Framework/Tool | Config files |
+|---------------|-------------|
+| Environment files | `.env`, `.env.local`, `.env.development` (root + subdirs) |
+| Prisma | `schema.prisma` → `env("DATABASE_URL")` or direct URL |
+| Django | `settings.py` → `DATABASES` dict |
+| Rails | `config/database.yml` → development section |
+| Laravel | `.env` → `DB_HOST`/`DB_DATABASE` vars |
+| Knex | `knexfile.js/ts` → connection string or object |
+| Sequelize | `config/config.json` → development section |
+| TypeORM | `ormconfig.json/ts` → url or host/database |
+| SQLAlchemy | `create_engine()` or `SQLALCHEMY_DATABASE_URI` in `.py` |
+| Frappe | `site_config.json` → db_host/db_name |
+| Go projects | `config.yaml` → database block, DSN strings in `.go` |
+| Docker Compose | `docker-compose.yml` → MySQL/MariaDB/PostgreSQL services |
+| WordPress | `wp-config.php` → `DB_NAME`/`DB_HOST` defines |
+| Generic | `.cfg`/`.ini` files with `MUSER`/`MHOST` or `DB_USER`/`DB_HOST` |
+
+### Security
+
+- Passwords are **always masked** in display output (`****`)
+- The tool **always asks for confirmation** before connecting (unless `--confirm` is passed)
+- tbls only reads schema metadata — it never writes to the database
+- Credentials are never written to `DBMAP.md`
+
 ## Running tests
 
 ```bash
@@ -197,7 +280,7 @@ pip install pytest pytest-cov
 python3 -m pytest tests/ -v --cov=repomap --cov-report=term-missing
 ```
 
-114 tests, 100% coverage on mapper.py.
+160 tests covering repomap (mapper.py 100%) and dbmap (all detectors).
 
 ## Tips
 
@@ -205,3 +288,5 @@ python3 -m pytest tests/ -v --cov=repomap --cov-report=term-missing
 - Commit `REPOMAP.md` to your repo so teammates and other AI tools can benefit
 - Use `--max-files` for large monorepos to keep the map focused
 - Add `.repomap-auto` to `.gitignore` — it's a local preference, not a project setting
+- Run `/dbmap` to add database schema context alongside your code map
+- Commit both `REPOMAP.md` and `DBMAP.md` for full project awareness across tools
