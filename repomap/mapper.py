@@ -467,12 +467,46 @@ def format_file_entry(filepath, definitions):
     return "\n".join(lines)
 
 
-def generate_repo_map(repo_root, max_files=None):
+# Directories that should never be mapped — third-party/build artifacts
+EXCLUDED_DIRS = {
+    "node_modules",
+    "vendor",
+    ".vendor",
+    "dist",
+    "build",
+    ".build",
+    "out",
+    ".next",
+    ".nuxt",
+    "__pycache__",
+    ".tox",
+    "venv",
+    ".venv",
+    "env",
+    ".env",
+    "site-packages",
+    ".git",
+    "coverage",
+    ".cache",
+    "bower_components",
+    "jspm_packages",
+    "web_modules",
+}
+
+
+def _is_excluded(filepath):
+    """Check if a filepath falls under an excluded directory."""
+    parts = Path(filepath).parts
+    return any(part in EXCLUDED_DIRS for part in parts)
+
+
+def generate_repo_map(repo_root, max_files=None, include_excluded=False):
     """Generate a complete repo map for the given repository.
 
     Args:
         repo_root: Path to the git repository root.
         max_files: Optional limit on number of files to process.
+        include_excluded: If True, include files in node_modules/vendor/etc.
 
     Returns:
         The repo map as a string.
@@ -483,6 +517,9 @@ def generate_repo_map(repo_root, max_files=None):
     files_mapped = 0
 
     for filepath in sorted(files):
+        if not include_excluded and _is_excluded(filepath):
+            continue
+
         lang = detect_language(filepath)
         if lang is None:
             continue

@@ -116,6 +116,11 @@ def main():
         "--update-file",
         help="Incrementally update a single file in an existing map",
     )
+    parser.add_argument(
+        "--include-vendor",
+        action="store_true",
+        help="Include node_modules, vendor, dist, and other excluded directories",
+    )
     args = parser.parse_args()
 
     repo_path = Path(args.repo).resolve()
@@ -132,7 +137,11 @@ def main():
         sys.exit(0)
 
     # Full generation mode
-    result = generate_repo_map(repo_path, max_files=args.max_files)
+    result = generate_repo_map(
+        repo_path,
+        max_files=args.max_files,
+        include_excluded=args.include_vendor,
+    )
 
     if not result.strip():
         print(
