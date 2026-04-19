@@ -21,6 +21,15 @@ Replace `<confirmed_dsn>` with the actual DSN string from the detected config (u
 If tbls is not installed, the tool will attempt to install it via Homebrew or `go install`. If both fail, tell the user to install it manually: `brew install k1LoW/tap/tbls`
 
 After the command completes:
-- If DBMAP.md has content, confirm success and summarize the tables found. Then ask the user: "Want me to add a rule so Claude automatically references this schema map in future sessions?" If yes, create `.claude/rules/dbmap.md` in the project directory with the content: "DBMAP.md at the project root is the database schema map (tables, columns, types, constraints, relationships). Read it when the task involves the database: writing or reviewing queries, designing migrations, adding models or ORM mappings, debugging schema-related errors, or reasoning about joins and foreign keys. Skip it for pure application logic that doesn't touch the DB." Create the `.claude/rules/` directory if needed.
+- If DBMAP.md has content, confirm success and summarize the tables found. Then ask the user: "Want me to add a rule to CLAUDE.md so Claude automatically references this schema map in future sessions?" If yes:
+  - Check whether CLAUDE.md at the project root already contains the marker `<!-- dbmap-rule -->`. If it does, the rule is already present — skip and tell the user.
+  - Otherwise, append the block below to CLAUDE.md (create the file if it doesn't exist). Leave a blank line before the block if appending to existing content.
+
+    ```
+    <!-- dbmap-rule -->
+    ## DBMAP.md
+
+    DBMAP.md at the project root is the database schema map (tables, columns, types, constraints, relationships). Read it when the task involves the database: writing or reviewing queries, designing migrations, adding models or ORM mappings, debugging schema-related errors, or reasoning about joins and foreign keys. Skip it for pure application logic that doesn't touch the DB.
+    ```
 - If the command failed with a connection error, help the user troubleshoot (wrong host? DB not running? credentials?)
 - If the command errored for another reason, share the error output

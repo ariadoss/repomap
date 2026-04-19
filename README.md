@@ -102,7 +102,7 @@ python3 -m repomap /path/to/repo --update-file src/app.ts -o REPOMAP.md
 /repomap
 ```
 
-After generating, the command optionally creates `.claude/rules/repomap.md` so Claude automatically references the map in future sessions.
+After generating, the command optionally appends a rule block to `CLAUDE.md` (creating it if needed) so Claude automatically references the map in future sessions. The rule is conditional — it tells Claude to consult `REPOMAP.md` for broad exploration, cross-module refactors, and "where does X live" questions, and to skip it for narrow single-symbol lookups where Grep is cheaper. A `<!-- repomap-rule -->` marker makes the step idempotent (re-running won't duplicate the rule). The equivalent `/dbmap` step appends a `<!-- dbmap-rule -->` block for the schema map.
 
 **Enable auto-updates (updates map on every file edit):**
 
