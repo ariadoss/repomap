@@ -28,9 +28,20 @@ src/handler.ts:
 
 ## Installation
 
+Clone to any location — the default is `~/claude-repomap-command`, but `~/.claude-repomap-command`, `~/.local/share/claude-repomap-command`, or a custom path set via `$REPOMAP_HOME` all work:
+
 ```bash
 git clone https://github.com/ariadoss/repomap.git ~/claude-repomap-command
 ```
+
+Invoke via `scripts/run.sh`, which auto-detects a compatible Python and sets `PYTHONPATH` for you:
+
+```bash
+~/claude-repomap-command/scripts/run.sh repomap -o REPOMAP.md
+~/claude-repomap-command/scripts/run.sh dbmap --list
+```
+
+Python is detected in this order: `python3.13` → `python3.12` → … → `python3.8` → `python3` → `python`. The first binary on `PATH` that reports `>= 3.8` is used. If none qualify, the helper falls back to `uv`, then `pyenv`, then `asdf` to provision Python 3.11. It errors with install links only if all four strategies fail.
 
 Dependencies are automatically resolved on first run with this fallback chain:
 

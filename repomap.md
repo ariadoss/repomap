@@ -2,19 +2,26 @@ Generate a repo map for the current project.
 
 First, verify this is a git repository. If not, let the user know.
 
-Then run this command:
+Then locate the repomap install. Search in this order and use the first hit:
 
-```bash
-PYTHONPATH=/Users/danilosapad/claude-repomap-command python3.11 -m repomap -o REPOMAP.md
-```
+1. `$REPOMAP_HOME` (if set)
+2. `$HOME/claude-repomap-command`
+3. `$HOME/.claude-repomap-command`
+4. `$HOME/.local/share/claude-repomap-command`
 
-The tool will auto-install `tree-sitter-languages` if it's not already installed.
-
-If the command fails because the repomap package isn't found, tell the user to clone it:
+If none of those contain a `scripts/run.sh` file, tell the user to clone the repo:
 
 ```bash
 git clone https://github.com/ariadoss/repomap.git ~/claude-repomap-command
 ```
+
+Once located, run the tool via the helper (replace `<REPOMAP_DIR>` with the path you found):
+
+```bash
+<REPOMAP_DIR>/scripts/run.sh repomap -o REPOMAP.md
+```
+
+The helper auto-detects a Python interpreter >= 3.8, auto-installs `tree-sitter-languages` on first run, and falls back to `uv`/`pyenv`/`asdf` if no compatible Python is on PATH. If it errors with "no compatible Python found", share the printed install options with the user.
 
 After the command completes:
 - If REPOMAP.md has content, confirm success and summarize what was mapped. Then ask the user: "Want me to add a rule to CLAUDE.md so Claude automatically references this map in future sessions?" If yes:

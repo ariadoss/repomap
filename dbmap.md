@@ -1,10 +1,25 @@
 Generate a database schema map for the current project.
 
-First, scan the project for database connection configurations by running:
+First, locate the repomap install. Search in this order and use the first hit:
+
+1. `$REPOMAP_HOME` (if set)
+2. `$HOME/claude-repomap-command`
+3. `$HOME/.claude-repomap-command`
+4. `$HOME/.local/share/claude-repomap-command`
+
+If none of those contain a `scripts/run.sh` file, tell the user to clone the repo:
 
 ```bash
-PYTHONPATH=/Users/danilosapad/claude-repomap-command python3.11 -m dbmap --list
+git clone https://github.com/ariadoss/repomap.git ~/claude-repomap-command
 ```
+
+Then scan the project for database connection configurations (replace `<REPOMAP_DIR>` with the path you found):
+
+```bash
+<REPOMAP_DIR>/scripts/run.sh dbmap --list
+```
+
+The helper auto-detects a Python interpreter >= 3.8 and falls back to `uv`/`pyenv`/`asdf` if no compatible Python is on PATH.
 
 This will detect database connections from .env files, Prisma schemas, Django settings, Rails database.yml, Knex configs, Sequelize configs, TypeORM configs, SQLAlchemy, Frappe site_config.json, Go config files, and docker-compose.yml.
 
@@ -13,7 +28,7 @@ Show the user the detected connections (with masked passwords). Ask which one to
 Once the user confirms a connection, run:
 
 ```bash
-PYTHONPATH=/Users/danilosapad/claude-repomap-command python3.11 -m dbmap --dsn '<confirmed_dsn>' -o DBMAP.md
+<REPOMAP_DIR>/scripts/run.sh dbmap --dsn '<confirmed_dsn>' -o DBMAP.md
 ```
 
 Replace `<confirmed_dsn>` with the actual DSN string from the detected config (unmasked).
