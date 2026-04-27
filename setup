@@ -1,0 +1,211 @@
+#!/usr/bin/env bash
+set -e
+umask 077
+
+QUIET=0
+INSTALL_CURSOR=0
+INSTALL_CLINE=0
+
+while [ $# -gt 0 ]; do
+  case "$1" in
+    -q|--quiet)  QUIET=1; shift ;;
+    --cursor)    INSTALL_CURSOR=1; shift ;;
+    --cline)     INSTALL_CLINE=1; shift ;;
+    *) shift ;;
+  esac
+done
+
+log() { [ "$QUIET" -eq 0 ] && echo "$@" || true; }
+
+SOURCE_DIR="$(cd "$(dirname "$0")" && pwd -P)"
+
+log ""
+log "  repomap setup"
+log "  ─────────────"
+log ""
+
+# Skills to install
+SKILLS="repomap dbmap"
+
+# ── Shared helpers ────────────────────────────────────────────────────────────
+_skill_desc() {
+  local skill_md="$1" desc
+  desc=$(grep -m1 '^description:' "$skill_md" 2>/dev/null \
+        | sed 's/^description:[[:space:]]*//' \
+        | sed 's/[[:space:]]*|[[:space:]]*$//')
+  if [ -z "$desc" ] || [ "$desc" = "|" ]; then
+    desc=$(awk '
+      /^description:/ { found=1; next }
+      found && /^[[:space:]]/ { gsub(/^[[:space:]]+/, ""); if (length > 0) { print; exit } }
+      found && /^[^[:space:]]/ { exit }
+    ' "$skill_md" 2>/dev/null)
+  fi
+  printf '%s' "${desc:-skill}"
+}
+
+_skill_body() {
+  awk 'BEGIN{n=0}/^---/{n++;next}n>=2{print}' "$1"
+}
+
+_skill_name() {
+  grep -m1 '^name:' "$1" 2>/dev/null | sed 's/^name:[[:space:]]*//' | tr -d '[:space:]'
+}
+
+# ── Claude Code ───────────────────────────────────────────────────────────────
+CLAUDE_SKILLS_DIR="$HOME/.claude/skills"
+if [ -d "$HOME/.claude" ]; then
+  log "  Linking skills (Claude Code)..."
+  for skill in $SKILLS; do
+    skill_md="$SOURCE_DIR/$skill.md"
+    [ -f "$skill_md" ] || continue
+    name=$(_skill_name "$skill_md")
+    [ -z "$name" ] && name="$skill"
+    target="$CLAUDE_SKILLS_DIR/$name"
+    mkdir -p "$target"
+    [ -L "$target/SKILL.md" ] && rm "$target/SKILL.md"
+    ln -snf "$skill_md" "$target/SKILL.md"
+    log "  [ok] /$name"
+  done
+  log ""
+fi
+
+# ── OpenCode ──────────────────────────────────────────────────────────────────
+OPENCODE_SKILLS_DIR="$HOME/.config/opencode/skills"
+if [ -d "$HOME/.config/opencode" ]; then
+  log "  Linking skills (OpenCode)..."
+  mkdir -p "$OPENCODE_SKILLS_DIR"
+  for skill in $SKILLS; do
+    skill_md="$SOURCE_DIR/$skill.md"
+    [ -f "$skill_md" ] || continue
+    name=$(_skill_name "$skill_md")
+    [ -z "$name" ] && name="$skill"
+    target="$OPENCODE_SKILLS_DIR/$name"
+    mkdir -p "$target"
+    [ -L "$target/SKILL.md" ] && rm "$target/SKILL.md"
+    ln -snf "$skill_md" "$target/SKILL.md"
+    log "  [ok] /$name"
+  done
+  log ""
+fi
+
+# ── OpenAI Codex CLI ──────────────────────────────────────────────────────────
+CODEX_SKILLS_DIR="$HOME/.codex/skills"
+if [ -d "$HOME/.codex" ]; then
+  log "  Linking skills (OpenAI Codex CLI)..."
+  mkdir -p "$CODEX_SKILLS_DIR"
+  for skill in $SKILLS; do
+    skill_md="$SOURCE_DIR/$skill.md"
+    [ -f "$skill_md" ] || continue
+    name=$(_skill_name "$skill_md")
+    [ -z "$name" ] && name="$skill"
+    target="$CODEX_SKILLS_DIR/$name"
+    mkdir -p "$target"
+    [ -L "$target/SKILL.md" ] && rm "$target/SKILL.md"
+    ln -snf "$skill_md" "$target/SKILL.md"
+    log "  [ok] /$name"
+  done
+  log ""
+fi
+
+# ── Continue.dev ──────────────────────────────────────────────────────────────
+CONTINUE_PROMPTS_DIR="$HOME/.continue/prompts"
+if [ -d "$HOME/.continue" ]; then
+  log "  Linking skills (Continue.dev)..."
+  mkdir -p "$CONTINUE_PROMPTS_DIR"
+  for skill in $SKILLS; do
+    skill_md="$SOURCE_DIR/$skill.md"
+    [ -f "$skill_md" ] || continue
+    name=$(_skill_name "$skill_md")
+    [ -z "$name" ] && name="$skill"
+    desc=$(_skill_desc "$skill_md")
+    body=$(_skill_body "$skill_md")
+    printf 'name: %s\ndescription: %s\n---\n%s\n' "$name" "$desc" "$body" \
+      > "$CONTINUE_PROMPTS_DIR/$name.prompt"
+    log "  [ok] /$name"
+  done
+  log ""
+fi
+
+# ── Augment Code ──────────────────────────────────────────────────────────────
+AUGMENT_COMMANDS_DIR="$HOME/.augment/commands/repomap"
+if [ -d "$HOME/.augment" ]; then
+  log "  Linking skills (Augment Code)..."
+  mkdir -p "$AUGMENT_COMMANDS_DIR"
+  for skill in $SKILLS; do
+    skill_md="$SOURCE_DIR/$skill.md"
+    [ -f "$skill_md" ] || continue
+    name=$(_skill_name "$skill_md")
+    [ -z "$name" ] && name="$skill"
+    body=$(_skill_body "$skill_md")
+    printf '# /%s\n\n%s\n' "$name" "$body" > "$AUGMENT_COMMANDS_DIR/$name.md"
+    log "  [ok] /$name"
+  done
+  log ""
+fi
+
+# ── Windsurf ──────────────────────────────────────────────────────────────────
+WINDSURF_MEM_DIR="$HOME/.codeium/windsurf/memories"
+if [ -d "$HOME/.codeium/windsurf" ]; then
+  log "  Writing skills reference (Windsurf)..."
+  mkdir -p "$WINDSURF_MEM_DIR"
+  {
+    printf '# repomap — Available Commands\n\n'
+    for skill in $SKILLS; do
+      skill_md="$SOURCE_DIR/$skill.md"
+      [ -f "$skill_md" ] || continue
+      name=$(_skill_name "$skill_md")
+      [ -z "$name" ] && name="$skill"
+      desc=$(_skill_desc "$skill_md")
+      printf '- `/%s` — %s\n' "$name" "$desc"
+    done
+  } > "$WINDSURF_MEM_DIR/repomap.md"
+  log "  written: $WINDSURF_MEM_DIR/repomap.md"
+  log ""
+fi
+
+# ── Cursor (project-level — requires --cursor flag) ──────────────────────────
+if [ "$INSTALL_CURSOR" -eq 1 ]; then
+  CURSOR_RULES_DIR="$(pwd)/.cursor/rules"
+  log "  Installing skills (Cursor rules → $CURSOR_RULES_DIR)..."
+  mkdir -p "$CURSOR_RULES_DIR"
+  for skill in $SKILLS; do
+    skill_md="$SOURCE_DIR/$skill.md"
+    [ -f "$skill_md" ] || continue
+    name=$(_skill_name "$skill_md")
+    [ -z "$name" ] && name="$skill"
+    desc=$(_skill_desc "$skill_md")
+    body=$(_skill_body "$skill_md")
+    printf -- '---\nname: %s\ndescription: %s\nalwaysApply: false\n---\n%s\n' \
+      "$name" "$desc" "$body" > "$CURSOR_RULES_DIR/repomap-$name.mdc"
+    log "  [ok] /$name"
+  done
+  log ""
+fi
+
+# ── Cline / Roo Code (project-level — requires --cline flag) ─────────────────
+if [ "$INSTALL_CLINE" -eq 1 ]; then
+  CLINE_FILE="$(pwd)/.clinerules"
+  log "  Writing skills reference (Cline/Roo → $CLINE_FILE)..."
+  {
+    printf '# repomap — Available Commands\n\n'
+    for skill in $SKILLS; do
+      skill_md="$SOURCE_DIR/$skill.md"
+      [ -f "$skill_md" ] || continue
+      name=$(_skill_name "$skill_md")
+      [ -z "$name" ] && name="$skill"
+      desc=$(_skill_desc "$skill_md")
+      printf '- `/%s` — %s\n' "$name" "$desc"
+    done
+  } >> "$CLINE_FILE"
+  log "  written: $CLINE_FILE"
+  log ""
+fi
+
+# ── Summary ───────────────────────────────────────────────────────────────────
+log "  repomap ready"
+log "  tools: Claude Code$([ -d "$HOME/.config/opencode" ] && echo ', OpenCode')$([ -d "$HOME/.codex" ] && echo ', Codex CLI')$([ -d "$HOME/.continue" ] && echo ', Continue.dev')$([ -d "$HOME/.augment" ] && echo ', Augment')$([ -d "$HOME/.codeium/windsurf" ] && echo ', Windsurf')"
+log ""
+log "  Project-level installs (run from project root):"
+log "    ./setup --cursor   → .cursor/rules/  (Cursor)"
+log "    ./setup --cline    → .clinerules     (Cline / Roo Code)"
+log ""
