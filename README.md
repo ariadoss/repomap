@@ -71,6 +71,8 @@ cp repomap.md ~/.claude/commands/repomap.md
 cp repomap-auto-on.md ~/.claude/commands/repomap-auto-on.md
 cp repomap-auto-off.md ~/.claude/commands/repomap-auto-off.md
 cp dbmap.md ~/.claude/commands/dbmap.md
+cp dbmap-auto-on.md ~/.claude/commands/dbmap-auto-on.md
+cp dbmap-auto-off.md ~/.claude/commands/dbmap-auto-off.md
 
 # Per-project
 mkdir -p .claude/commands
@@ -255,6 +257,44 @@ python3 -m dbmap /path/to/project --confirm -o DBMAP.md
 ```
 
 The slash command scans your project, shows detected connections, and asks which to use before connecting.
+
+### Auto-update on migrations
+
+Keep `DBMAP.md` in sync with the live schema by enabling auto-updates:
+
+```
+/dbmap-auto-on    # asks for a DSN, writes it to .dbmap-auto, gitignores it
+/dbmap-auto-off   # disables
+```
+
+When enabled, a Claude Code PostToolUse hook fires on `Bash` calls and regenerates `DBMAP.md` whenever it sees a migration command run (Rails `db:migrate`, Django `manage.py migrate`, Alembic `upgrade`, `prisma migrate`/`prisma db push`, `knex migrate`, `sequelize db:migrate`, `goose up`, `dbmate up/migrate`, `flyway migrate`, `liquibase update`, `typeorm migration:run`, `drizzle-kit migrate/push`).
+
+The hook is gated on three things being true: `.dbmap-auto` exists, `DBMAP.md` exists, and the bash command matches the migration regex. It only re-queries the DB after the schema has actually changed — editing a migration file does not trigger it.
+
+**Security:** `.dbmap-auto` contains a database DSN with credentials. `/dbmap-auto-on` adds it to `.gitignore` automatically; never commit it.
+
+Add this to `~/.claude/settings.json` once (the slash commands won't add it for you):
+
+```json
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "if [ -f .dbmap-auto ] && [ -f DBMAP.md ]; then CMD=$(jq -r '.tool_input.command // empty'); if echo \"$CMD\" | grep -qE '(db:migrate|manage\\.py migrate|alembic upgrade|prisma (migrate|db push)|knex migrate|sequelize db:migrate|goose up|dbmate (up|migrate)|flyway migrate|liquibase update|typeorm migration:run|drizzle-kit (migrate|push))'; then DSN=$(head -n1 .dbmap-auto); [ -n \"$DSN\" ] && \"${REPOMAP_HOME:-$HOME/claude-repomap-command}/scripts/run.sh\" dbmap --dsn \"$DSN\" -o DBMAP.md 2>/dev/null; fi; fi",
+            "timeout": 60
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+If you also have the repomap auto-update hook configured, add this as a second entry in the `PostToolUse` array — they're independent (different matchers).
 
 ### Supported config formats
 
