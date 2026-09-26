@@ -341,3 +341,7 @@ python3 -m pytest tests/ -v --cov=repomap --cov-report=term-missing
 - Add `.repomap-auto` to `.gitignore` — it's a local preference, not a project setting
 - Run `/dbmap` to add database schema context alongside your code map
 - Commit both `REPOMAP.md` and `DBMAP.md` for full project awareness across tools
+
+## License
+
+MIT, see [LICENSE](LICENSE).
