@@ -5,6 +5,31 @@ Two tools that give AI coding agents complete project awareness:
 - **repomap** — Generates a structural map of your codebase using [tree-sitter](https://tree-sitter.github.io/tree-sitter/). No LLM API calls, no tokens burned — pure local parsing, instant results. Saved as `REPOMAP.md`.
 - **dbmap** — Generates a database schema map using [tbls](https://github.com/k1LoW/tbls). Auto-detects database connections from your project config files with a confirmation step before connecting. Saved as `DBMAP.md`.
 
+## Measured note (2026-10): what these are good for now
+
+Five pre-registered, eval-gated experiments (synthetic fixtures + real
+repos, reports:
+[superskills evals](https://github.com/ariadoss/superskills/tree/main/evals/reports))
+measured **no agent-context utility for these maps when handed to
+tool-using agents** (Claude-class models with Grep/Glob/Read): agents
+given a map performed the same or worse than agents that searched
+directly, and invoking the skill first cost 1.3–2x the turns. That is a
+statement about *this deployment* — static, broadcast maps competing
+with targeted search. The idea's lineage (Aider's per-conversation ranked
+repo map; retrieval-time context engines) works where the model cannot
+search, or where retrieval is ranked per query; a static file is the
+degenerate form.
+
+**Where dbmap still earns its keep:** as a *ground-truth artifact* for
+work without live database access — committed, kept fresh (see the auto
+toggles), and pointed at by a repo rule. Two improvements follow from the
+measurements: stamp DBMAP.md's header with generation time and source
+database (provenance was the gap agents flagged), and treat it as the
+record of the deployed schema, not as agent context.
+
+repomap remains available here as a standalone tool for humans and
+pipelines; it was removed from the superskills plugin in v2.39.0.
+
 ## How it works
 
 Uses tree-sitter to parse your source files and extract definitions (classes, functions, interfaces, types, etc.) into a concise outline:
