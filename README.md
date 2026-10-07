@@ -1,3 +1,44 @@
+# ⚠️ DEPRECATED (2026-10-07)
+
+This repo is deprecated and archived. Reasoning, in full:
+
+**The measurements.** Five pre-registered, eval-gated experiments
+(synthetic fixtures + real production repos; full reports in
+[superskills evals/reports](https://github.com/ariadoss/superskills/tree/main/evals/reports),
+2026-10-06/07) found **no agent-context utility for these maps when
+handed to tool-using agents**: agents given REPOMAP.md or DBMAP.md
+performed the same or worse than agents that searched directly
+(`grep`/read), and invoking the skill first cost 1.3–2x the turns. This
+held on fresh maps, on a real 1,146-file monorepo, and even with the
+team's own committed map sitting in the repo.
+
+**The reconciliation with the idea's lineage.** Aider's repo map helps
+because Aider's model has *no search tools* — the map is its grep — and
+because Aider ships *ranked per-conversation slices*, not a static file.
+Retrieval-time context engines rank per query. A static, broadcast map
+in a tool-rich agent is the degenerate form of a good idea.
+
+**What survived, and where it went.** dbmap's remaining real job — a
+**fresh, provenance-stamped ground-truth artifact for work without live
+database access** — moved to its own home:
+[ariadoss/dbmap](https://github.com/ariadoss/dbmap). The `/dbmap` skill
+lives on in [superskills](https://github.com/ariadoss/superskills) ≥
+2.40.0 pointed at the new repo.
+
+**repomap-the-tool** (tree-sitter code outlines) remains functional in
+this archived repo for humans and pipelines — clones still work — but it
+is unmaintained, and its pinned dependency stack
+(`tree-sitter-languages` 1.10.2, cp311-only wheels) is aging. Known bug
+frozen as-is: `scripts/run.sh`'s interpreter probe picks any python ≥ 3.8
+without checking whether the pinned deps import, which breaks on hosts
+defaulting to python3.13 (patch exists in the wild; not landing here).
+Existing clones — including user-level auto-update hooks — are
+unaffected by archiving.
+
+Unarchiving is possible if ever needed.
+
+---
+
 # repomap + dbmap — Code & Database Maps for AI Coding Tools
 
 Two tools that give AI coding agents complete project awareness:
